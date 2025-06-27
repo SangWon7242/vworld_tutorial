@@ -415,7 +415,7 @@ def calculate_center_point(coordinates, geom_type):
         return None, None
 
 def create_classified_vworld_map(zones):
-    """분류된 비행 제한 구역을 VWorld 지도에 표시"""
+    """분류된 비행 제한 구역을 VWorld 지도에 표시 (수정된 버전)"""
     
     if not FOLIUM_AVAILABLE:
         print("⚠️  folium이 설치되지 않아 지도를 생성할 수 없습니다.")
@@ -466,8 +466,9 @@ def create_classified_vworld_map(zones):
                 control=True
             ).add_to(m)            
         
-        # 구역 유형별 그룹 생성
+        # 구역 유형별 그룹 생성 및 고유 ID 부여
         restriction_groups = {}
+        zone_type_mapping = {}  # 구역 유형과 그룹 ID 매핑
         
         # 각 구역을 지도에 표시
         for zone in valid_zones:
@@ -478,10 +479,18 @@ def create_classified_vworld_map(zones):
                 icon_emoji = restriction_info['icon']
                 severity = restriction_info['severity']
                 
-                # 그룹이 없으면 생성
+                # 그룹이 없으면 생성 (고유 ID 부여)
                 if zone_type not in restriction_groups:
-                    restriction_groups[zone_type] = folium.FeatureGroup(name=f"{icon_emoji} {zone_type}")
+                    # 안전한 ID 생성 (특수문자 제거)
+                    safe_id = zone_type.replace(')', '').replace('(', '').replace(' ', '_').replace('/', '_')
+                    group_id = f"zone_group_{safe_id}"
+                    
+                    restriction_groups[zone_type] = folium.FeatureGroup(
+                        name=f"{icon_emoji} {zone_type}",
+                        show=True  # 기본적으로 표시
+                    )
                     restriction_groups[zone_type].add_to(m)
+                    zone_type_mapping[zone_type] = group_id
                 
                 address_info = zone['address_info'] or {}
                 
@@ -509,7 +518,7 @@ def create_classified_vworld_map(zones):
                     <div style="margin-bottom: 10px;">
                         <strong>🔍 고도 제한</strong>
                         <div style="font-size: 13px; margin-top: 4px; color: {'#d32f2f' if severity == 'high' else '#e65100' if severity == 'medium' else '#2e7d32'};">
-                            {zone.get('altitude_info', '고도 정보 없음')}
+                            {zone.get('altitude_limit', '고도 정보 없음')}
                         </div>
                     </div>
                     
@@ -524,35 +533,35 @@ def create_classified_vworld_map(zones):
                         # 라벨 유형에 따른 배경색 설정
                         bg_color = '#f44336'  # 기본 빨간색
                         if '금지' in label:
-                            bg_color = '#d32f2f'  # 비행금지구역
+                            bg_color = '#d32f2f'
                         elif '제한' in label:
-                            bg_color = '#e65100'  # 비행제한구역
+                            bg_color = '#e65100'
                         elif 'UNL' in label:
-                            bg_color = '#2e7d32'  # 고도제한없음
+                            bg_color = '#2e7d32'
                         elif 'GND' in label:
-                            bg_color = '#c2185b'  # 지상제한구역
+                            bg_color = '#c2185b'
                         elif 'P61A' in label:
-                            bg_color = '#7b1fa2'  # 특별관리구역
+                            bg_color = '#7b1fa2'
                         elif 'UA)' in label:
-                            bg_color = '#d32f2f'  # UA)초경량비행장치공역
+                            bg_color = '#d32f2f'
                         elif '관제' in label:
-                            bg_color = '#1976d2'  # 관제권
+                            bg_color = '#1976d2'
                         elif '경계' in label:
-                            bg_color = '#0288d1'  # 경계구역
+                            bg_color = '#0288d1'
                         elif '교통' in label:
-                            bg_color = '#388e3c'  # 비행장교통구역
+                            bg_color = '#388e3c'
                         elif '경량' in label:
-                            bg_color = '#8e24aa'  # 경량항공기 이착륙장
+                            bg_color = '#8e24aa'
                         elif '위험' in label:
-                            bg_color = '#ffa000'  # 위험지역
+                            bg_color = '#ffa000'
                         elif '장애물' in label:
-                            bg_color = '#00796b'  # 장애물공역
+                            bg_color = '#00796b'
                         elif '협의' in label:
-                            bg_color = '#c2185b'  # 사전협의구역
+                            bg_color = '#c2185b'
                         elif '임시' in label:
-                            bg_color = '#d32f2f'  # 임시비행금지구역
+                            bg_color = '#d32f2f'
                         elif '공원' in label:
-                            bg_color = '#388e3c'  # 국립자연공원
+                            bg_color = '#388e3c'
                         
                         popup_html += f"""
                             <span style="background-color: {bg_color}; color: white; padding: 3px 8px; 
@@ -587,7 +596,6 @@ def create_classified_vworld_map(zones):
                 
                 # 마커 스타일 설정
                 if zone_type == '비행금지구역' or '금지' in zone_type:
-                    # 비행금지구역은 빨간색 마커로 강조
                     icon_html = f"""
                     <div style="display: flex; justify-content: center; align-items: center; 
                                 width: 32px; height: 32px; 
@@ -600,7 +608,6 @@ def create_classified_vworld_map(zones):
                     </div>
                     """
                 else:
-                    # 다른 구역은 일반 마커
                     border_style = restriction_info.get('border', f"2px solid {color}")
                     icon_html = f"""
                     <div style="display: flex; justify-content: center; align-items: center; 
@@ -623,10 +630,10 @@ def create_classified_vworld_map(zones):
                 ).add_to(restriction_groups[zone_type])
                 
                 # 폴리곤 추가 (구역 경계)
-                if zone.get('geometry') and zone['geometry'].get('coordinates'):
+                if zone.get('coordinates') and zone['coordinates']:
                     try:
-                        geom_type = zone['geometry']['type']
-                        coords = zone['geometry']['coordinates']
+                        geom_type = zone.get('geometry_type', 'Polygon')
+                        coords = zone['coordinates']
                         
                         # 폴리곤 스타일 설정
                         polygon_style = {
@@ -645,7 +652,6 @@ def create_classified_vworld_map(zones):
                                 'fillOpacity': 0.4,
                                 'dashArray': None
                             })
-                        # 점선 테두리가 필요한 구역
                         elif '교통' in zone_type or '경계' in zone_type or '장애물' in zone_type or '경량' in zone_type or '협의' in zone_type:
                             polygon_style.update({
                                 'dashArray': '5, 5',
@@ -654,7 +660,6 @@ def create_classified_vworld_map(zones):
                         
                         # 지오메트리 유형에 따라 폴리곤 생성
                         if geom_type == 'Polygon':
-                            # 좌표 변환 (VWorld API는 [경도, 위도] 형식이지만 folium은 [위도, 경도] 필요)
                             polygon_coords = [[coord[1], coord[0]] for coord in coords[0]]
                             folium.Polygon(
                                 locations=polygon_coords,
@@ -665,7 +670,6 @@ def create_classified_vworld_map(zones):
                         
                         elif geom_type == 'MultiPolygon':
                             for poly_coords in coords:
-                                # 좌표 변환
                                 multi_polygon_coords = [[coord[1], coord[0]] for coord in poly_coords[0]]
                                 folium.Polygon(
                                     locations=multi_polygon_coords,
@@ -686,7 +690,15 @@ def create_classified_vworld_map(zones):
         # 레이어 컨트롤 추가
         folium.LayerControl(collapsed=False).add_to(m)
         
-        # 상세 범례 추가
+        # 구역 유형별 통계
+        type_counts = {}
+        for zone in valid_zones:
+            zone_type = zone['restriction_info']['type']
+            if zone_type not in type_counts:
+                type_counts[zone_type] = {'count': 0, 'info': zone['restriction_info']}
+            type_counts[zone_type]['count'] += 1
+        
+        # 수정된 범례 HTML (JavaScript 개선)
         legend_html = f'''
         <div id="legend-container" style="position: fixed; 
                     top: 10px; right: 10px; width: 300px; height: auto; 
@@ -707,80 +719,33 @@ def create_classified_vworld_map(zones):
             <button onclick="toggleLegend()" style="background: #f44336; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 12px;">닫기</button>
         </div>
         
-        <!-- 전체 선택/해제 버튼 추가 -->
+        <!-- 전체 선택/해제 버튼 -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
             <button onclick="toggleAllZones(true)" style="background: #4CAF50; color: white; border: none; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 12px; flex: 1; margin-right: 5px;">전체 선택</button>
             <button onclick="toggleAllZones(false)" style="background: #9E9E9E; color: white; border: none; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 12px; flex: 1;">전체 해제</button>
         </div>
+        
+        <div style="margin-bottom: 8px; font-weight: bold; font-size: 12px;">데이터에서 발견된 구역:</div>
         '''
         
-        # 표준 비행 제한 구역 유형
-        standard_zone_types = {
-            '비행금지구역': {'color': '#d32f2f', 'icon': '🚫', 'border': '2px solid #d32f2f'},
-            '비행제한구역': {'color': '#e65100', 'icon': '⚠️', 'border': '2px solid #e65100'},
-            '고도제한없음': {'color': '#2e7d32', 'icon': '📏', 'border': '2px solid #2e7d32'},
-            '지상제한구역': {'color': '#c2185b', 'icon': '🚫', 'border': '2px solid #c2185b'},
-            '특별관리구역': {'color': '#7b1fa2', 'icon': '🔒', 'border': '2px solid #7b1fa2'}
-        }
-        
-        # 추가 비행 제한 구역 유형 (이미지에서 확인된 유형)
-        additional_zone_types = {
-            'UA)초경량비행장치공역': {'color': '#ffcdd2', 'icon': '🛩️', 'border': '2px solid #d32f2f'},
-            '관제권': {'color': '#bbdefb', 'icon': '🗼', 'border': '2px solid #1976d2'},
-            '경계구역': {'color': '#e1f5fe', 'icon': '🔍', 'border': '2px dashed #0288d1'},
-            '비행금지구역': {'color': '#ffcdd2', 'icon': '🚫', 'border': '2px solid #d32f2f'},
-            '비행제한구역': {'color': '#ffe0b2', 'icon': '⚠️', 'border': '2px solid #e65100'},
-            '비행장교통구역': {'color': '#e8f5e9', 'icon': '✈️', 'border': '2px dashed #388e3c'},
-            '경량항공기 이착륙장': {'color': '#f3e5f5', 'icon': '🛬', 'border': '2px dashed #8e24aa'},
-            '위험지역': {'color': '#ffecb3', 'icon': '⚡', 'border': '2px solid #ffa000'},
-            '장애물공역': {'color': '#e0f2f1', 'icon': '🏔️', 'border': '2px dashed #00796b'},
-            '사전협의구역': {'color': '#f8bbd0', 'icon': '📝', 'border': '2px dashed #c2185b'},
-            '임시비행금지구역': {'color': '#ffcdd2', 'icon': '⏱️', 'border': '2px solid #d32f2f'},
-            '국립자연공원': {'color': '#c8e6c9', 'icon': '🌳', 'border': '2px solid #388e3c'}
-        }
-        
-        # 구역 유형별 범례 항목 추가 (실제 데이터에서 발견된 유형)
-        type_counts = {}
-        for zone in valid_zones:
-            zone_type = zone['restriction_info']['type']
-            if zone_type not in type_counts:
-                type_counts[zone_type] = {'count': 0, 'info': zone['restriction_info']}
-            type_counts[zone_type]['count'] += 1
-        
-        # 모든 구역 유형 (실제 데이터 + 추가 유형)
-        all_zone_types = {}
-        all_zone_types.update(additional_zone_types)
-        
         # 실제 데이터에서 발견된 구역 유형 추가
-        legend_html += '<div style="margin-bottom: 8px; font-weight: bold; font-size: 12px;">데이터에서 발견된 구역:</div>'
-        
+        zone_type_list = []
         for zone_type, data in type_counts.items():
             info = data['info']
             count = data['count']
+            safe_zone_type = zone_type.replace("'", "\\'")  # JavaScript 문자열 이스케이프
+            zone_type_list.append(safe_zone_type)
+            
             legend_html += f'''
             <div style="margin-bottom: 6px; display: flex; align-items: center;">
-                <input type="checkbox" id="toggle_{zone_type}" class="zone-toggle" checked 
-                       onclick="toggleZoneType('{zone_type}')" style="margin-right: 5px;">
+                <input type="checkbox" id="toggle_{safe_zone_type.replace(' ', '_').replace(')', '').replace('(', '').replace('/', '_')}" 
+                       class="zone-toggle" checked 
+                       onchange="toggleZoneType('{safe_zone_type}')" style="margin-right: 5px;">
                 <span style="display: inline-block; width: 16px; height: 16px; background-color: {info['color']}; 
                             border-radius: 3px; margin-right: 8px; border: {info.get('border', '2px solid ' + info['color'])}"></span>
                 <span style="font-size: 12px;">{info['icon']} {zone_type} ({count}개)</span>
             </div>
             '''
-        
-        # 추가 비행 제한 구역 유형 (이미지에서 확인된 유형)
-        legend_html += '<div style="margin: 10px 0 8px 0; font-weight: bold; font-size: 12px; border-top: 1px solid #eee; padding-top: 8px;">표준 비행 제한 구역:</div>'
-        
-        for zone_type, style in additional_zone_types.items():
-            if zone_type not in type_counts:  # 실제 데이터에 없는 경우에만 추가
-                legend_html += f'''
-                <div style="margin-bottom: 6px; display: flex; align-items: center; opacity: 0.7;">
-                    <input type="checkbox" id="toggle_standard_{zone_type}" class="standard-zone-toggle"
-                           onclick="toggleStandardZoneType('{zone_type}')" style="margin-right: 5px;">
-                    <span style="display: inline-block; width: 16px; height: 16px; background-color: {style['color']}; 
-                                border-radius: 3px; margin-right: 8px; border: {style['border']}"></span>
-                    <span style="font-size: 12px;">{style['icon']} {zone_type}</span>
-                </div>
-                '''
         
         legend_html += '''
         <div style="border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px;">
@@ -795,130 +760,177 @@ def create_classified_vworld_map(zones):
             데이터 출처: 국토교통부 VWorld API
         </div>
         
-        <script>
-        // 실제 데이터에서 발견된 구역 유형 토글
-        function toggleZoneType(zoneType) {
-            var checkbox = document.getElementById('toggle_' + zoneType);
-            var featureGroup = document.querySelector('.leaflet-overlay-pane').querySelector('[data-zone-type="' + zoneType + '"]');
-            
-            if (featureGroup) {
-                if (checkbox.checked) {
-                    featureGroup.style.display = 'block';
-                } else {
-                    featureGroup.style.display = 'none';
-                }
-            }
-        }
-        
-        // 표준 비행 제한 구역 유형 토글 (실제 데이터에 없는 경우)
-        function toggleStandardZoneType(zoneType) {
-            var checkbox = document.getElementById('toggle_standard_' + zoneType);
-            
-            // 표준 구역 유형이 선택되면 해당 스타일의 마커와 폴리곤을 생성
-            if (checkbox.checked) {
-                // 이미 생성된 레이어가 있는지 확인
-                var existingLayer = document.querySelector('.leaflet-overlay-pane').querySelector('[data-zone-type="' + zoneType + '"]');
-                
-                if (!existingLayer) {
-                    // 새 레이어 생성 요청
-                    createStandardZoneLayer(zoneType);
-                } else {
-                    existingLayer.style.display = 'block';
-                }
-            } else {
-                // 레이어 숨기기
-                var layer = document.querySelector('.leaflet-overlay-pane').querySelector('[data-zone-type="' + zoneType + '"]');
-                if (layer) {
-                    layer.style.display = 'none';
-                }
-            }
-        }
-        
-        // 전체 구역 토글 (선택/해제)
-        function toggleAllZones(show) {
-            // 실제 데이터 구역 토글
-            var zoneCheckboxes = document.querySelectorAll('.zone-toggle');
-            zoneCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = show;
-                var zoneType = checkbox.id.replace('toggle_', '');
-                var featureGroup = document.querySelector('.leaflet-overlay-pane').querySelector('[data-zone-type="' + zoneType + '"]');
-                if (featureGroup) {
-                    featureGroup.style.display = show ? 'block' : 'none';
-                }
-            });
-            
-            // 표준 구역 토글
-            var standardCheckboxes = document.querySelectorAll('.standard-zone-toggle');
-            standardCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = show;
-                if (show) {
-                    var zoneType = checkbox.id.replace('toggle_standard_', '');
-                    var existingLayer = document.querySelector('.leaflet-overlay-pane').querySelector('[data-zone-type="' + zoneType + '"]');
-                    if (existingLayer) {
-                        existingLayer.style.display = 'block';
-                    }
-                }
-            });
-            
-            // 상태 메시지 표시
-            var statusMsg = document.getElementById('toggle-status');
-            if (statusMsg) {
-                statusMsg.textContent = show ? '모든 구역이 표시됩니다' : '모든 구역이 숨겨졌습니다';
-                statusMsg.style.opacity = '1';
-                setTimeout(function() {
-                    statusMsg.style.opacity = '0';
-                }, 2000);
-            }
-        }
-        
-        // 표준 구역 레이어 생성 요청 (서버에 AJAX 요청)
-        function createStandardZoneLayer(zoneType) {
-            // 실제 구현에서는 서버에 AJAX 요청을 보내 해당 유형의 데이터를 가져올 수 있음
-            console.log('표준 구역 레이어 생성 요청: ' + zoneType);
-            
-            // 알림 표시
-            alert('표준 구역 유형 "' + zoneType + '"에 대한 데이터를 요청합니다. 실제 구현에서는 서버에서 해당 데이터를 가져와 지도에 표시합니다.');
-        }
-        
-        function toggleLegend() {
-            var legend = document.getElementById('legend-container');
-            if (legend.style.display === 'none') {
-                legend.style.display = 'block';
-            } else {
-                legend.style.display = 'none';
-            }
-        }
-        
-        // 페이지 로드 시 각 구역 유형에 data-zone-type 속성 추가
-        document.addEventListener('DOMContentLoaded', function() {
-            // 약간의 지연을 두고 실행 (지도 로딩 후)
-            setTimeout(function() {
-                var featureGroups = document.querySelectorAll('.leaflet-overlay-pane .leaflet-layer');
-                
-                // 각 레이어 그룹에 구역 유형 데이터 속성 추가
-                var zoneTypes = [];
-                '''
-        
-        # 실제 데이터에서 발견된 구역 유형 JavaScript 배열에 추가
-        for zone_type in type_counts.keys():
-            legend_html += f"zoneTypes.push('{zone_type}');\n"
-        
-        legend_html += '''
-                // 각 피처 그룹에 구역 유형 데이터 속성 추가
-                featureGroups.forEach(function(group, index) {
-                    if (index < zoneTypes.length) {
-                        group.setAttribute('data-zone-type', zoneTypes[index]);
-                    }
-                });
-            }, 1000);
-        });
-        </script>
-        
-        <!-- 토글 상태 메시지 -->
-        <div id="toggle-status" style="position: fixed; bottom: 80px; right: 20px; background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; opacity: 0; transition: opacity 0.3s ease; z-index: 9999;"></div>
+        <div id="toggle-status" style="position: fixed; bottom: 80px; right: 20px; 
+                                      background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; 
+                                      border-radius: 4px; font-size: 12px; opacity: 0; 
+                                      transition: opacity 0.3s ease; z-index: 9999; display: none;"></div>
         </div>
         '''
+        
+        # 수정된 JavaScript 코드
+        javascript_code = f'''
+        <script>
+        // 전역 변수로 지도 객체와 레이어 그룹 저장
+        var mapLayers = {{}};
+        var zoneTypeMapping = {{}};
+        
+        // 구역 유형 목록
+        var zoneTypes = {zone_type_list};
+        
+        // 지도 초기화 완료 후 실행
+        document.addEventListener('DOMContentLoaded', function() {{
+            // 지도 로딩 대기
+            setTimeout(function() {{
+                initializeLayerControl();
+            }}, 2000);
+        }});
+        
+        function initializeLayerControl() {{
+            try {{
+                // Leaflet 지도 객체 찾기
+                var mapContainer = document.querySelector('.folium-map');
+                if (!mapContainer || !mapContainer._leaflet_map) {{
+                    console.log('지도 객체를 찾을 수 없습니다. 재시도 중...');
+                    setTimeout(initializeLayerControl, 1000);
+                    return;
+                }}
+                
+                var map = mapContainer._leaflet_map;
+                
+                // 레이어 그룹 매핑
+                map.eachLayer(function(layer) {{
+                    if (layer.options && layer.options.name) {{
+                        var layerName = layer.options.name;
+                        // 구역 유형 이름에서 아이콘 제거하고 매핑
+                        for (var i = 0; i < zoneTypes.length; i++) {{
+                            if (layerName.includes(zoneTypes[i])) {{
+                                mapLayers[zoneTypes[i]] = layer;
+                                break;
+                            }}
+                        }}
+                    }}
+                }});
+                
+                console.log('레이어 컨트롤 초기화 완료:', Object.keys(mapLayers));
+                
+            }} catch (error) {{
+                console.error('레이어 컨트롤 초기화 오류:', error);
+                setTimeout(initializeLayerControl, 1000);
+            }}
+        }}
+        
+        function toggleZoneType(zoneType) {{
+            try {{
+                var checkboxId = 'toggle_' + zoneType.replace(' ', '_').replace(')', '').replace('(', '').replace('/', '_');
+                var checkbox = document.getElementById(checkboxId);
+                
+                if (!checkbox) {{
+                    console.error('체크박스를 찾을 수 없습니다:', checkboxId);
+                    return;
+                }}
+                
+                var layer = mapLayers[zoneType];
+                if (layer) {{
+                    if (checkbox.checked) {{
+                        // 레이어 표시
+                        if (layer.addTo) {{
+                            var mapContainer = document.querySelector('.folium-map');
+                            if (mapContainer && mapContainer._leaflet_map) {{
+                                layer.addTo(mapContainer._leaflet_map);
+                            }}
+                        }}
+                        console.log('레이어 표시:', zoneType);
+                    }} else {{
+                        // 레이어 숨김
+                        if (layer.remove) {{
+                            layer.remove();
+                        }}
+                        console.log('레이어 숨김:', zoneType);
+                    }}
+                    
+                    showStatus(checkbox.checked ? zoneType + ' 표시됨' : zoneType + ' 숨김');
+                }} else {{
+                    console.error('레이어를 찾을 수 없습니다:', zoneType);
+                }}
+                
+            }} catch (error) {{
+                console.error('구역 토글 오류:', error);
+            }}
+        }}
+        
+        function toggleAllZones(show) {{
+            try {{
+                zoneTypes.forEach(function(zoneType) {{
+                    var checkboxId = 'toggle_' + zoneType.replace(' ', '_').replace(')', '').replace('(', '').replace('/', '_');
+                    var checkbox = document.getElementById(checkboxId);
+                    
+                    if (checkbox) {{
+                        checkbox.checked = show;
+                        
+                        var layer = mapLayers[zoneType];
+                        if (layer) {{
+                            if (show) {{
+                                if (layer.addTo) {{
+                                    var mapContainer = document.querySelector('.folium-map');
+                                    if (mapContainer && mapContainer._leaflet_map) {{
+                                        layer.addTo(mapContainer._leaflet_map);
+                                    }}
+                                }}
+                            }} else {{
+                                if (layer.remove) {{
+                                    layer.remove();
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+                
+                showStatus(show ? '모든 구역이 표시됩니다' : '모든 구역이 숨겨졌습니다');
+                
+            }} catch (error) {{
+                console.error('전체 토글 오류:', error);
+            }}
+        }}
+        
+        function showStatus(message) {{
+            var statusDiv = document.getElementById('toggle-status');
+            if (statusDiv) {{
+                statusDiv.textContent = message;
+                statusDiv.style.display = 'block';
+                statusDiv.style.opacity = '1';
+                
+                setTimeout(function() {{
+                    statusDiv.style.opacity = '0';
+                    setTimeout(function() {{
+                        statusDiv.style.display = 'none';
+                    }}, 300);
+                }}, 2000);
+            }}
+        }}
+        
+        function toggleLegend() {{
+            var legend = document.getElementById('legend-container');
+            if (legend) {{
+                if (legend.style.display === 'none' || legend.style.display === '') {{
+                    legend.style.display = 'block';
+                }} else {{
+                    legend.style.display = 'none';
+                }}
+            }}
+        }}
+        
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', function() {{
+            mapLayers = {{}};
+            zoneTypeMapping = {{}};
+        }});
+        
+        </script>
+        '''
+        
+        # HTML에 JavaScript 추가
         m.get_root().html.add_child(folium.Element(legend_html))
+        m.get_root().html.add_child(folium.Element(javascript_code))
         
         # 범례 버튼 추가
         legend_button_html = '''
@@ -930,8 +942,8 @@ def create_classified_vworld_map(zones):
                            color: white; 
                            border: none; 
                            border-radius: 50%; 
-                           width: 50px; 
-                           height: 50px; 
+                           width: 80px; 
+                           height: 80px; 
                            font-size: 20px;
                            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
                            cursor: pointer;
@@ -966,6 +978,7 @@ def create_classified_vworld_map(zones):
         import traceback
         traceback.print_exc()
         return None
+
 
 def save_classified_data(zones):
     """분류된 데이터를 JSON 파일로 저장"""
@@ -1143,7 +1156,7 @@ def create_summary_report(zones):
                 report_content += "\n"
         
         # 주요 제한 사항
-        report_content += """
+        report_content += f"""
 ## 📝 주요 제한 사항 및 주의사항
 
 ### 🚫 비행금지구역
