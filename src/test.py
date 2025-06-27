@@ -133,7 +133,7 @@ def classify_restriction_type(props):
             'reason': '초경량 비행장치(드론 등)의 비행이 제한되는 특별 공역입니다. 비행 전 관련 규정을 확인하세요.',
             'border': '2px solid #d32f2f'
         })
-    elif '관제권' in zone_type or '관제' in prh_lbl_1:
+    elif '관제권' in zone_type or '관제' in prh_lbl_1 or '관제' in prh_typ:
         restriction_info.update({
             'type': '관제권',
             'severity': 'medium',
@@ -142,7 +142,7 @@ def classify_restriction_type(props):
             'reason': '공항 주변 항공기 이착륙 안전을 위한 관제 구역입니다. 관제탑의 허가 없이 비행할 수 없습니다.',
             'border': '2px solid #1976d2'
         })
-    elif '경계구역' in zone_type or '경계' in prh_lbl_1:
+    elif '경계구역' in zone_type or '경계' in prh_lbl_1 or '경계' in prh_typ:
         restriction_info.update({
             'type': '경계구역',
             'severity': 'low',
@@ -151,16 +151,16 @@ def classify_restriction_type(props):
             'reason': '특별한 주의가 필요한 경계 구역입니다. 비행 시 주변 환경에 주의하세요.',
             'border': '2px dashed #0288d1'
         })
-    elif '비행금지구역' in zone_type or '금지' in prohibited or '금지' in prh_lbl_1:
+    elif '비행금지구역' in zone_type or '금지' in prohibited or '금지' in prh_lbl_1 or '금지' in prh_typ:
         restriction_info.update({
             'type': '비행금지구역',
             'severity': 'high',
-            'color': '#ffcdd2',
+            'color': '#ff0000',  # 더 눈에 띄는 빨간색으로 변경
             'icon': '🚫',
             'reason': '국가 안보 및 안전상의 이유로 비행이 금지된 구역입니다. 허가 없이 비행할 경우 법적 처벌을 받을 수 있습니다.',
             'border': '2px solid #d32f2f'
         })
-    elif '비행제한구역' in zone_type or '제한' in prohibited or '제한' in prh_lbl_4:
+    elif '비행제한구역' in zone_type or '제한' in prohibited or '제한' in prh_lbl_4 or '제한' in prh_typ:
         restriction_info.update({
             'type': '비행제한구역',
             'severity': 'medium',
@@ -169,7 +169,7 @@ def classify_restriction_type(props):
             'reason': '특정 조건(고도, 시간, 허가 등)에 따라 비행이 제한되는 구역입니다. 사전 허가를 받으면 비행이 가능할 수 있습니다.',
             'border': '2px solid #e65100'
         })
-    elif '비행장교통구역' in zone_type or '교통' in prh_lbl_1:
+    elif '비행장교통구역' in zone_type or '교통' in prh_lbl_1 or '교통' in prh_typ:
         restriction_info.update({
             'type': '비행장교통구역',
             'severity': 'medium',
@@ -178,7 +178,7 @@ def classify_restriction_type(props):
             'reason': '비행장 주변 항공기 이착륙 안전을 위한 교통 구역입니다. 비행 시 특별한 주의가 필요합니다.',
             'border': '2px dashed #388e3c'
         })
-    elif '경량항공기 이착륙장' in zone_type or '경량' in prh_lbl_1:
+    elif '경량항공기 이착륙장' in zone_type or '경량' in prh_lbl_1 or '경량' in prh_typ:
         restriction_info.update({
             'type': '경량항공기 이착륙장',
             'severity': 'medium',
@@ -187,7 +187,7 @@ def classify_restriction_type(props):
             'reason': '경량항공기의 이착륙이 이루어지는 구역입니다. 비행 시 주의가 필요합니다.',
             'border': '2px dashed #8e24aa'
         })
-    elif '위험지역' in zone_type or '위험' in prh_lbl_1:
+    elif '위험지역' in zone_type or '위험' in prh_lbl_1 or '위험' in prh_typ:
         restriction_info.update({
             'type': '위험지역',
             'severity': 'high',
@@ -196,7 +196,7 @@ def classify_restriction_type(props):
             'reason': '비행 시 위험 요소가 있는 구역입니다. 특별한 주의가 필요합니다.',
             'border': '2px solid #ffa000'
         })
-    elif '장애물공역' in zone_type or '장애물' in prh_lbl_1:
+    elif '장애물공역' in zone_type or '장애물' in prh_lbl_1 or '장애물' in prh_typ:
         restriction_info.update({
             'type': '장애물공역',
             'severity': 'medium',
@@ -205,7 +205,7 @@ def classify_restriction_type(props):
             'reason': '고층 건물, 송전탑 등 장애물이 있는 공역입니다. 비행 시 충돌 위험에 주의하세요.',
             'border': '2px dashed #00796b'
         })
-    elif '사전협의구역' in zone_type or '협의' in prh_lbl_1:
+    elif '사전협의구역' in zone_type or '협의' in prh_lbl_1 or '협의' in prh_typ:
         restriction_info.update({
             'type': '사전협의구역',
             'severity': 'low',
@@ -214,7 +214,7 @@ def classify_restriction_type(props):
             'reason': '비행 전 관련 기관과의 사전 협의가 필요한 구역입니다. 비행 계획 전 해당 기관에 문의하세요.',
             'border': '2px dashed #c2185b'
         })
-    elif '임시비행금지구역' in zone_type or '임시' in prh_lbl_1:
+    elif '임시비행금지구역' in zone_type or '임시' in prh_lbl_1 or '임시' in prh_typ:
         restriction_info.update({
             'type': '임시비행금지구역',
             'severity': 'high',
@@ -223,7 +223,7 @@ def classify_restriction_type(props):
             'reason': '특정 기간 동안 비행이 금지된 임시 구역입니다. 공지된 기간을 확인하고 비행을 삼가하세요.',
             'border': '2px solid #d32f2f'
         })
-    elif '국립자연공원' in zone_type or '공원' in prh_lbl_1:
+    elif '국립자연공원' in zone_type or '공원' in prh_lbl_1 or '공원' in prh_typ:
         restriction_info.update({
             'type': '국립자연공원',
             'severity': 'low',
@@ -232,16 +232,7 @@ def classify_restriction_type(props):
             'reason': '자연환경 보호를 위해 비행이 제한될 수 있는 국립공원 구역입니다. 비행 전 공원 관리사무소에 문의하세요.',
             'border': '2px solid #388e3c'
         })
-    elif 'UNL' in prh_lbl_2:  # Unlimited
-        restriction_info.update({
-            'type': '고도제한없음',
-            'severity': 'low',
-            'color': '#2e7d32',
-            'icon': '📏',
-            'reason': '고도 제한이 없는 구역이지만, 다른 비행 규정은 준수해야 합니다. 주변 환경과 기상 조건을 고려하여 안전하게 비행하세요.',
-            'border': '2px solid #2e7d32'
-        })
-    elif 'GND' in prh_lbl_3:  # Ground
+    elif 'GND' in prh_lbl_3 or 'GND' in prh_typ:  # Ground
         restriction_info.update({
             'type': '지상제한구역',
             'severity': 'high',
@@ -250,7 +241,7 @@ def classify_restriction_type(props):
             'reason': '지상부터 특정 고도까지 비행이 제한된 구역입니다. 군사시설, 주요 인프라 보호 등의 이유로 설정되었습니다.',
             'border': '2px solid #c2185b'
         })
-    elif 'P61A' in prh_lbl_1:  # 특정 코드
+    elif 'P61A' in prh_lbl_1 or 'P61A' in prh_typ:  # 특정 코드
         restriction_info.update({
             'type': '특별관리구역',
             'severity': 'high',
@@ -258,6 +249,15 @@ def classify_restriction_type(props):
             'icon': '🔒',
             'reason': '특별한 관리가 필요한 구역으로, 비행 전 관련 기관의 허가가 필요합니다.',
             'border': '2px solid #7b1fa2'
+        })
+    elif 'UNL' in prh_lbl_2 or 'UNL' in prh_typ:  # Unlimited - 이 조건을 마지막에 체크
+        restriction_info.update({
+            'type': '고도제한없음',
+            'severity': 'low',
+            'color': '#2e7d32',
+            'icon': '📌',
+            'reason': '고도 제한이 없는 구역이지만, 다른 비행 규정은 준수해야 합니다. 주변 환경과 기상 조건을 고려하여 안전하게 비행하세요.',
+            'border': '2px solid #2e7d32'
         })
     
     return restriction_info
@@ -561,7 +561,7 @@ def create_classified_vworld_map(zones):
                             </span>
                         """
                 
-                popup_html += """
+                popup_html += f"""
                         </div>
                     </div>
                     
@@ -592,9 +592,9 @@ def create_classified_vworld_map(zones):
                     <div style="display: flex; justify-content: center; align-items: center; 
                                 width: 32px; height: 32px; 
                                 background-color: white; 
-                                border: 3px solid #d32f2f; 
+                                border: 3px solid {color}; 
                                 border-radius: 50%; 
-                                box-shadow: 0 0 8px #d32f2f, 0 0 12px rgba(255,0,0,0.3); 
+                                box-shadow: 0 0 8px {color}, 0 0 12px rgba(255,0,0,0.3); 
                                 font-size: 16px;">
                         {icon_emoji}
                     </div>
